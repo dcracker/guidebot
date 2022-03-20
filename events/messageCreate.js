@@ -8,6 +8,7 @@ const getDirName = require("path").dirname;
 const csvparser = require("csv-parser");
 const csvwriter = require("csv-writer").createObjectCsvWriter;
 const align = require("string-align");
+const { execSync } = require("child_process");
 
 const baseDataPath = "/home/pi/discord_bot/account_datas/";
 const csvHeaderFormat = [
@@ -90,7 +91,7 @@ const emojiQuestion = "❓";
 const channelIdGeneral = "952529231475253251";
 
 const accountNameList = [
-  "식비", "한글채널"
+  "식비", "한글채널", "항아리", "수입"
 ];
 
 // var accInfo = {
@@ -176,16 +177,16 @@ async function doTransaction(message, amount, memo) {
       return reaction.emoji.name === emojiCancel && user.id === message.author.id;
     };
     const collector = message.createReactionCollector({ filter, max: 1, time: 600000 });
-    collector.on("collect", (reaction, user) => {
-      message.reactions.cache.get(okReaction).remove()
+    collector.on("collect", async (reaction, user) => {
+      await message.reactions.removeAll()
         .catch(error => logger.log(`RBX]failed to clear reactions: ${error}`));
-      message.react(emojiCancel);
+      await message.react(emojiCancel);
       const resbot = appendTransaction(message.channel.name, -amount, "cancel", "bot", res.rowData.ts, "");
       if (resbot.error == null) {
-        message.reply("취소됨. 현재 잔액: " + resbot.newBalance);
+        await message.reply("취소됨. 현재 잔액: " + resbot.newBalance);
       } else {
-        message.react(emojiQuestion);
-        message.reply("취소 실패. 직접 입력하세요.");
+        await message.react(emojiQuestion);
+        await message.reply("취소 실패. 직접 입력하세요.");
       }
     });
     await message.react(okReaction);
@@ -225,9 +226,6 @@ module.exports = async (client, message) => {
   if (accInfo == null) {
     await firstLoadAll();
   }
-  logger.log("RBX] " + accInfo);
-
-  logger.log("RBX] chan id : " + message.channel.id);
 
   // It's also good practice to ignore any and all messages that do not start
   // with our prefix, or a bot mention.
@@ -255,6 +253,13 @@ module.exports = async (client, message) => {
         } else {
           doTransaction(message, amount, memo);
         }
+      }
+    } else if (message.content == "backup") {
+      const info = accInfo[message.channel.name];
+      if (info) {
+        const filePath = info.dataFilePath;
+        const catres = execSync(`cat ${filePath}`).toString();
+        await message.reply("```\n" + catres + "\n```");
       }
     }
 
