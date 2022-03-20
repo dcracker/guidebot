@@ -1,6 +1,83 @@
 const logger = require("../modules/logger.js");
 const { getSettings, permlevel } = require("../modules/functions.js");
 const config = require("../config.js");
+const os = require("os");
+const fs = require("fs");
+const mkdirp = require("mkdirp-sync");
+const getDirName = require("path").dirname;
+const csvparser = require("csv-parser");
+const csvwriter = require("csv-writer").createObjectCsvWriter;
+const align = require("string-align");
+
+const baseDataPath = "/home/pi/discord_bot/account_datas/";
+const csvHeaderFormat = [
+  { id: "ts", title: "ts" },
+  { id: "date", title: "date" },
+  { id: "amount", title: "amount" },
+  { id: "memo", title: "memo" },
+  { id: "etc", title: "etc" },
+  { id: "balance", title: "balance" }
+];
+
+function saveTo(path, csvData) {
+
+}
+
+async function loadFrom(path) {
+  var datas = [];
+  if (!fs.existsSync(path)) {
+    fs.writeFileSync(path, 'ts,date,amount,memo,etc,balance\n');
+  }
+  return new Promise(resolve => {
+    fs.createReadStream(path)
+      .pipe(csvparser())
+      .on("data", (row) => {
+        logger.log(row);
+        datas.push(row);
+      })
+      .on("end", () => {
+        logger.log("endend");
+        resolve(datas);
+      })
+      .on("error", (error) => {
+        logger.error("file load error: " + error);
+        resolve(datas);
+      });
+  });
+}
+
+const emojiOKtoMinus = "👍";
+const emojiOKtoPlus = "👌";
+const emojiFailed = "⛔";
+const emojiCancel = "❌";
+const emojiQuestion = "❓";
+const channelIdGeneral = "952529231475253251";
+
+const accountNameList = [
+  "식비"
+];
+
+// var accInfo = {
+//   "식비": {
+//     "channelId": "954963149038170172",
+//     "datasPrev": [],
+//     "datas": []
+//   }
+// };
+var accInfo = null;
+
+async function firstLoadAll() {
+  for (var name of accountNameList) {
+    const now = new Date();
+    const filepath = baseDataPath + `${name}/${now.getFullYear()}${align(now.getMonth() + 1, 2, 'right', '0')}.csv`;
+    const datas = await loadFrom(filepath);
+    accInfo[name] = {
+      "datas": datas
+    };
+  }
+}
+
+
 
 // The MESSAGE event runs anytime a message is received
 // Note that due to the binding of client to every event, every event
@@ -25,6 +102,13 @@ module.exports = async (client, message) => {
   if (message.content.match(prefixMention)) {
     return message.reply(`My prefix on this guild is \`${settings.prefix}\``);
   }
+
+  if (accInfo == null) {
+    await firstLoadAll();
+  }
+  logger.log("RBX] " + accInfo);
+
+  logger.log("RBX] chan id : " + message.channel.id);
 
   // It's also good practice to ignore any and all messages that do not start
   // with our prefix, or a bot mention.
