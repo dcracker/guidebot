@@ -15,36 +15,72 @@ const csvHeaderFormat = [
   { id: "date", title: "date" },
   { id: "amount", title: "amount" },
   { id: "memo", title: "memo" },
+  { id: "by", title: "by" },
+  { id: "relation", title: "relation" },
   { id: "etc", title: "etc" },
   { id: "balance", title: "balance" }
 ];
 
-function saveTo(path, csvData) {
-
-}
+// async function saveTo(path, csvData) {
+//   const writer = csvwriter({
+//     path: path,
+//     header: csvHeaderFormat
+//   });
+//   return new Promide(resolve => {
+//     writer.writeRecords(csvData)
+//       .then(() => resolve());
+//   });
+// }
 
 async function loadFrom(path) {
-  var datas = [];
-  if (!fs.existsSync(path)) {
-    mkdirp(getDirName(path));
-    fs.writeFileSync(path, 'ts,date,amount,memo,etc,balance\n');
-  }
   return new Promise(resolve => {
-    fs.createReadStream(path)
-      .pipe(csvparser())
-      .on("data", (row) => {
-        logger.log(row);
-        datas.push(row);
-      })
-      .on("end", () => {
-        logger.log("endend");
-        resolve(datas);
-      })
-      .on("error", (error) => {
-        logger.error("file load error: " + error);
-        resolve(datas);
-      });
+    var datas = [];
+    try {
+      if (!fs.existsSync(path)) {
+        mkdirp(getDirName(path));
+        fs.writeFileSync(path, 'ts,date,amount,memo,by,relation,etc,balance\n');
+      }
+      fs.createReadStream(path)
+        .pipe(csvparser())
+        .on("data", (row) => {
+          logger.log(row);
+          const rowData = {
+            "ts": parseInt(row.ts),
+            "date": row.date,
+            "amount": parseInt(row.amount),
+            "memo": row.memo,
+            "by": row.by,
+            "relation": row.relation,
+            "etc": row.etc,
+            "balance": parseInt(row.balance)
+          };
+          datas.push(rowData);
+        })
+        .on("end", () => {
+          logger.log("endend");
+          resolve(datas);
+        })
+        .on("error", (error) => {
+          logger.error("file load error: " + error);
+          resolve(datas);
+        });
+    } catch {
+      logger.error("exception: " + error);
+      resolve(datas);
+    }
   });
+}
+
+function getMonthCodesFromNow() {
+  var now = new Date();
+  const monthCode = `${now.getFullYear()}${align(now.getMonth() + 1, 2, 'right', '0')}`;
+  now.setDate(1);
+  now.setMonth(now.getMonth() - 1);
+  const monthCodePrev = `${now.getFullYear()}${align(now.getMonth() + 1, 2, 'right', '0')}`;
+  return {
+    monthCode: monthCode,
+    monthCodePrev: monthCodePrev
+  };
 }
 
 const emojiOKtoMinus = "👍";
@@ -70,13 +106,53 @@ var accInfo = null;
 async function firstLoadAll() {
   accInfo = {};
   for (var name of accountNameList) {
-    const now = new Date();
-    const filepath = baseDataPath + `${name}/${now.getFullYear()}${align(now.getMonth() + 1, 2, 'right', '0')}.csv`;
-    const datas = await loadFrom(filepath);
+    const filePath = baseDataPath + `${name}/datas.csv`;
+    const datas = await loadFrom(filePath);
+    const balance = datas.length == 0 ? 0 : datas[datas.length - 1].balance;
     accInfo[name] = {
-      "datas": datas
+      "datas": datas,
+      "balance": balance,
+      "dataFilePath": filePath
     };
   }
+}
+
+function getDateString(date) {
+  return `${date.getFullYear()}-${align(date.getMonth() + 1, 2, 'right', '0')}-${align(date.getDate(), 2, 'right', '0')} ${align(date.getHours(), 2, 'right', '0')}:${align(date.getMinutes(), 2, 'right', '0')}:${align(date.getSeconds(), 2, 'right', '0')}`;
+}
+
+function appendTransaction(name, amount, memo, by, relation, etc) {
+  const info = accInfo[name];
+  if (!info) {
+    return "Not exist name: " + name;
+  }
+  const iAmount = parseInt(amount);
+  if (Number.isNaN(iAmount)) {
+    return "Wrong number: " + amount;
+  }
+  const newBalance = parseInt(info.balance) + iAmount; 
+  const now = new Date();
+  const rowData = {
+    "ts": parseInt(now.getTime()),
+    "date": getDateString(now),
+    "amount": iAmount,
+    "memo": memo,
+    "by": by,
+    "relation": relation,
+    "etc": etc,
+    "balance": newBalance
+  };
+  try {
+    const rowString = `${rowData.ts},${rowData.date},${rowData.amount},${rowData.memo},${rowData.by},${rowData.relation},${rowData.etc},${rowData.balance}\n`;
+    fs.appendFileSync(info.dataFilePath, rowString);
+  } catch {
+    logger.error("File appending exception: " + error);
+    return "File appending exception: " + error;
+  }
+  var tempDatas = info.datas;
+  tempDatas.push(rowData);
+  accInfo[name].datas = tempDatas;
+  return null;
 }
 
 
@@ -118,6 +194,8 @@ module.exports = async (client, message) => {
   // This will return and stop the code from continuing if it's missing
   // our prefix (be it mention or from the settings).
   if (!prefix) return;
+
+  logger.log("RBX] chan name : " + message.channel.name);
     
   // Here we separate our "command" name, and our "arguments" for the command.
   // e.g. if we have the message "+say Is this the real life?" , we'll get the following:
@@ -139,12 +217,16 @@ module.exports = async (client, message) => {
   // and clean way to grab one of 2 values!
   if (!cmd) return;
 
+  logger.log("RBX] 22");
+
   // Some commands may not be useable in DMs. This check prevents those commands from running
   // and return a friendly error message.
   if (cmd && !message.guild && cmd.conf.guildOnly)
     return message.channel.send("This command is unavailable via private message. Please run this command in a guild.");
 
   if (!cmd.conf.enabled) return;
+
+  logger.log("RBX] 33");
 
   if (level < container.levelCache[cmd.conf.permLevel]) {
     if (settings.systemNotice === "true") {
@@ -165,6 +247,7 @@ This command requires level ${container.levelCache[cmd.conf.permLevel]} (${cmd.c
     message.flags.push(args.shift().slice(1));
   }
   // If the command exists, **AND** the user has permission, run it.
+  logger.log("RBX] 44");
   try {
     await cmd.run(client, message, args, level);
     logger.log(`${config.permLevels.find(l => l.level === level).name} ${message.author.id} ran command ${cmd.help.name}`, "cmd");
