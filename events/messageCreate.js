@@ -133,7 +133,12 @@ function appendTransaction(name, amount, memo, by, relation, etc) {
       error: "Wrong number: " + amount
     };
   }
-  const newBalance = parseInt(info.balance) + iAmount; 
+  const newBalance = parseInt(info.balance) + iAmount;
+  if (Number.isNaN(newBalance)) {
+    return {
+      error: "New balance is NaN: " + info.balance + ", amount: " + iAmount
+    }
+  }
   const now = new Date();
   const rowData = {
     "ts": parseInt(now.getTime()),
@@ -192,7 +197,7 @@ async function doTransaction(message, amount, memo) {
     await message.reply("현재 잔액: " + res.newBalance);
   } else {
     await message.react(emojiQuestion);
-    await message.reply(res);
+    await message.reply(res.error);
   }
 }
 
