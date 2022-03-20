@@ -57,7 +57,6 @@ async function loadFrom(path) {
           datas.push(rowData);
         })
         .on("end", () => {
-          logger.log("endend");
           resolve(datas);
         })
         .on("error", (error) => {
@@ -125,13 +124,13 @@ function appendTransaction(name, amount, memo, by, relation, etc) {
   const info = accInfo[name];
   if (!info) {
     return {
-      error: "Not exist name: " + name;
+      error: "Not exist name: " + name
     };
   }
   const iAmount = parseInt(amount);
   if (Number.isNaN(iAmount)) {
     return {
-      error: "Wrong number: " + amount;
+      error: "Wrong number: " + amount
     };
   }
   const newBalance = parseInt(info.balance) + iAmount; 
@@ -152,14 +151,16 @@ function appendTransaction(name, amount, memo, by, relation, etc) {
   } catch {
     logger.error("File appending exception: " + error);
     return {
-      error: "File appending exception: " + error;
+      error: "File appending exception: " + error
     };
   }
   var tempDatas = info.datas;
   tempDatas.push(rowData);
   accInfo[name].datas = tempDatas;
+  accInfo[name].balance = newBalance;
   return {
     rowData: rowData,
+    newBalance: newBalance,
     error: null
   };
 }
@@ -177,7 +178,7 @@ async function doTransaction(message, amount, memo) {
       message.react(emojiCancel);
       const resbot = appendTransaction(message.channel.name, -amount, "cancel", "bot", res.rowData.ts, "");
       if (resbot.error == null) {
-        message.reply("취소됨. 현재 잔액: " + resbot.rowData.balance);
+        message.reply("취소됨. 현재 잔액: " + resbot.newBalance);
       } else {
         message.react(emojiQuestion);
         message.reply("취소 실패. 직접 입력하세요.");
@@ -188,7 +189,7 @@ async function doTransaction(message, amount, memo) {
     } else {
       await message.react(emojiOKtoPlus);
     }
-    await message.reply("현재 잔액: " + res.rowData.balance);
+    await message.reply("현재 잔액: " + res.newBalance);
   } else {
     await message.react(emojiQuestion);
     await message.reply(res);
