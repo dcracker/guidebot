@@ -26,6 +26,7 @@ function saveTo(path, csvData) {
 async function loadFrom(path) {
   var datas = [];
   if (!fs.existsSync(path)) {
+    mkdirp(getDirName(path));
     fs.writeFileSync(path, 'ts,date,amount,memo,etc,balance\n');
   }
   return new Promise(resolve => {
