@@ -166,6 +166,10 @@ function appendTransaction(name, amount, memo, by, relation, etc) {
 }
 
 async function doTransaction(message, amount, memo) {
+  var okReaction = emojiOKtoPlus;
+  if (amount < 0) {
+    okReaction = emojiOKtoMinus;
+  }
   const res = appendTransaction(message.channel.name, amount, memo, message.author.id, "", "");
   if (res.error == null) {
     const filter = (reaction, user) => {
@@ -173,7 +177,7 @@ async function doTransaction(message, amount, memo) {
     };
     const collector = message.createReactionCollector({ filter, max: 1, time: 600000 });
     collector.on("collect", (reaction, user) => {
-      message.reactions.cache.get(emojiOKtoMinus).remove()
+      message.reactions.cache.get(okReaction).remove()
         .catch(error => logger.log(`RBX]failed to clear reactions: ${error}`));
       message.react(emojiCancel);
       const resbot = appendTransaction(message.channel.name, -amount, "cancel", "bot", res.rowData.ts, "");
@@ -184,11 +188,7 @@ async function doTransaction(message, amount, memo) {
         message.reply("취소 실패. 직접 입력하세요.");
       }
     });
-    if (amount < 0) {
-      await message.react(emojiOKtoMinus);
-    } else {
-      await message.react(emojiOKtoPlus);
-    }
+    await message.react(okReaction);
     await message.reply("현재 잔액: " + res.newBalance);
   } else {
     await message.react(emojiQuestion);
