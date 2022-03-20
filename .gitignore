@@ -8,6 +8,8 @@ config.json
 config.js
 data/
 test.js
+nohup.out
+save_pid.txt
 
 # Runtime data
 pids
