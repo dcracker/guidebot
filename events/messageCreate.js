@@ -68,6 +68,7 @@ const accountNameList = [
 var accInfo = null;
 
 async function firstLoadAll() {
+  accInfo = {};
   for (var name of accountNameList) {
     const now = new Date();
     const filepath = baseDataPath + `${name}/${now.getFullYear()}${align(now.getMonth() + 1, 2, 'right', '0')}.csv`;
