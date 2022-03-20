@@ -44,7 +44,6 @@ async function loadFrom(path) {
       fs.createReadStream(path)
         .pipe(csvparser())
         .on("data", (row) => {
-          logger.log(row);
           const rowData = {
             "ts": parseInt(row.ts),
             "date": row.date,
