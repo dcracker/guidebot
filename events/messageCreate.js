@@ -91,7 +91,7 @@ const emojiQuestion = "❓";
 const channelIdGeneral = "952529231475253251";
 
 const accountNameList = [
-  "식비"
+  "식비", "한글채널"
 ];
 
 // var accInfo = {
@@ -124,11 +124,15 @@ function getDateString(date) {
 function appendTransaction(name, amount, memo, by, relation, etc) {
   const info = accInfo[name];
   if (!info) {
-    return "Not exist name: " + name;
+    return {
+      error: "Not exist name: " + name;
+    };
   }
   const iAmount = parseInt(amount);
   if (Number.isNaN(iAmount)) {
-    return "Wrong number: " + amount;
+    return {
+      error: "Wrong number: " + amount;
+    };
   }
   const newBalance = parseInt(info.balance) + iAmount; 
   const now = new Date();
@@ -147,12 +151,48 @@ function appendTransaction(name, amount, memo, by, relation, etc) {
     fs.appendFileSync(info.dataFilePath, rowString);
   } catch {
     logger.error("File appending exception: " + error);
-    return "File appending exception: " + error;
+    return {
+      error: "File appending exception: " + error;
+    };
   }
   var tempDatas = info.datas;
   tempDatas.push(rowData);
   accInfo[name].datas = tempDatas;
-  return null;
+  return {
+    rowData: rowData,
+    error: null
+  };
+}
+
+async function doTransaction(message, amount, memo) {
+  const res = appendTransaction(message.channel.name, amount, memo, message.author.id, "", "");
+  if (res.error == null) {
+    const filter = (reaction, user) => {
+      return reaction.emoji.name === emojiCancel && user.id === message.author.id;
+    };
+    const collector = message.createReactionCollector({ filter, max: 1, time: 600000 });
+    collector.on("collect", (reaction, user) => {
+      message.reactions.cache.get(emojiOKtoMinus).remove()
+        .catch(error => logger.log(`RBX]failed to clear reactions: ${error}`));
+      message.react(emojiCancel);
+      const resbot = appendTransaction(message.channel.name, -amount, "cancel", "bot", res.rowData.ts, "");
+      if (resbot.error == null) {
+        message.reply("취소됨. 현재 잔액: " + resbot.rowData.balance);
+      } else {
+        message.react(emojiQuestion);
+        message.reply("취소 실패. 직접 입력하세요.");
+      }
+    });
+    if (amount < 0) {
+      await message.react(emojiOKtoMinus);
+    } else {
+      await message.react(emojiOKtoPlus);
+    }
+    await message.reply("현재 잔액: " + res.rowData.balance);
+  } else {
+    await message.react(emojiQuestion);
+    await message.reply(res);
+  }
 }
 
 
@@ -193,9 +233,32 @@ module.exports = async (client, message) => {
   const prefix = new RegExp(`^<@!?${client.user.id}> |^\\${settings.prefix}`).exec(message.content);
   // This will return and stop the code from continuing if it's missing
   // our prefix (be it mention or from the settings).
-  if (!prefix) return;
+  if (!prefix) {
+    const msgs = message.content.split(' ');
+    if (msgs.length == 2) {
+      const amount = parseInt(msgs[0]);
+      if (!Number.isNaN(amount)) {
+        const memo = msgs[1].replace(',', '/');
+        if (amount < 0) {
+          await message.react(emojiQuestion);
+        } else {
+          doTransaction(message, -amount, memo);
+        }
+      }
+    } else if (msgs.length == 3 && (msgs[0] == "p" || msgs[0] == "P")) {
+      const amount = parseInt(msgs[1]);
+      if (!Number.isNaN(amount)) {
+        const memo = msgs[2].replace(',', '/');
+        if (amount < 0) {
+          await message.react(emojiQuestion);
+        } else {
+          doTransaction(message, amount, memo);
+        }
+      }
+    }
 
-  logger.log("RBX] chan name : " + message.channel.name);
+    return;
+  }
     
   // Here we separate our "command" name, and our "arguments" for the command.
   // e.g. if we have the message "+say Is this the real life?" , we'll get the following:
@@ -217,16 +280,12 @@ module.exports = async (client, message) => {
   // and clean way to grab one of 2 values!
   if (!cmd) return;
 
-  logger.log("RBX] 22");
-
   // Some commands may not be useable in DMs. This check prevents those commands from running
   // and return a friendly error message.
   if (cmd && !message.guild && cmd.conf.guildOnly)
     return message.channel.send("This command is unavailable via private message. Please run this command in a guild.");
 
   if (!cmd.conf.enabled) return;
-
-  logger.log("RBX] 33");
 
   if (level < container.levelCache[cmd.conf.permLevel]) {
     if (settings.systemNotice === "true") {
@@ -247,7 +306,6 @@ This command requires level ${container.levelCache[cmd.conf.permLevel]} (${cmd.c
     message.flags.push(args.shift().slice(1));
   }
   // If the command exists, **AND** the user has permission, run it.
-  logger.log("RBX] 44");
   try {
     await cmd.run(client, message, args, level);
     logger.log(`${config.permLevels.find(l => l.level === level).name} ${message.author.id} ran command ${cmd.help.name}`, "cmd");
