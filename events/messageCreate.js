@@ -276,6 +276,9 @@ module.exports = async (client, message) => {
           lineCount = 0;
           msg = '';
         }
+        if (lineCount > 0) {
+          await message.reply("```\n" + msg + "\n```");
+        }
       }
     }
 
