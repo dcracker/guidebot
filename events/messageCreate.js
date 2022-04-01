@@ -262,8 +262,20 @@ module.exports = async (client, message) => {
       const info = accInfo[message.channel.name];
       if (info) {
         const filePath = info.dataFilePath;
-        const catres = execSync(`cat ${filePath}`).toString();
-        await message.reply("```\n" + catres + "\n```");
+        // execSync(`split -C 2000 ${filePath} temp_split_`);
+        const catResultLines = execSync(`cat ${filePath}`).toString().split('\n');
+        var lineCount = 0;
+        var msg = '';
+        for (var line of catResultLines) {
+          msg += line + '\n';
+          lineCount += 1;
+          if (lineCount < 15) {
+            continue;
+          }
+          await message.reply("```\n" + msg + "\n```");
+          lineCount = 0;
+          msg = '';
+        }
       }
     }
 
