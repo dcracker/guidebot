@@ -307,9 +307,19 @@ module.exports = async (client, message) => {
                 }
               }
             }
-            var reportMsg = '';
+            var totalDataArray = [];
             for (const key of Object.keys(totalData)) {
-              reportMsg += `${key}: ${totalData[key]}원\n`;
+              totalDataArray.push({
+                memo: key,
+                amount: totalData[key]
+              });
+            }
+            totalDataArray.sort(function(a, b) {
+              return b.amount - a.amount;
+            });
+            var reportMsg = '';
+            for (const sdata of totalDataArray) {
+              reportMsg += `${sdata.memo}: ${sdata.amount}원\n`;
             }
             if (reportMsg.length > 0) {
               const reportLines = reportMsg.split('\n');
