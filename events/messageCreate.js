@@ -141,6 +141,7 @@ async function autoReporter(channel) {
               reportMsg += `${data.date}> ${data.memo}: ${data.amount}\n`;
             }
           }
+          reportMsg += `잔액: ${info.balance}`;
           if (reportMsg.length > 0) {
             const reportLines = reportMsg.split('\n');
             var lineCount = 0;
