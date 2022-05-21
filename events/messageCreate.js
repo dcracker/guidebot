@@ -262,6 +262,9 @@ module.exports = async (client, message) => {
                 var lineCount = 0;
                 var msg = '';
                 for (var line of reportLines) {
+                  if (line.length == 0) {
+                    continue;
+                  }
                   msg += line + '\n';
                   lineCount += 1;
                   if (lineCount < 15) {
@@ -313,6 +316,9 @@ module.exports = async (client, message) => {
               var lineCount = 0;
               var msg = '';
               for (var line of reportLines) {
+                if (line.length == 0) {
+                  continue;
+                }
                 msg += line + '\n';
                 lineCount += 1;
                 if (lineCount < 15) {
