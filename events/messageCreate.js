@@ -241,7 +241,101 @@ module.exports = async (client, message) => {
   // our prefix (be it mention or from the settings).
   if (!prefix) {
     const msgs = message.content.split(' ');
-    if (msgs.length == 2) {
+    if (msgs[0] == "report") {
+      if (msgs.length == 2) {
+        const inkey = msgs[1];
+        const info = accInfo[message.channel.name];
+        if (info) {
+          const datas = info.datas;
+          if (datas && datas.length > 0) {
+            var reportMsg = '';
+            for (const data of datas) {
+              const ymtemp = data.date.split('-');
+              const key = `${ymtemp[0]}-${ymtemp[1]}`;
+              if (inkey == key) {
+                reportMsg += `${data.date}> ${data.memo}: ${data.amount}\n`;
+              }
+            }
+            if (reportMsg.length > 0) {
+              const reportLines = reportMsg.split('\n');
+              var lineCount = 0;
+              var msg = '';
+              for (var line of reportLines) {
+                msg += line + '\n';
+                lineCount += 1;
+                if (lineCount < 15) {
+                  continue;
+                }
+                await message.reply("```\n" + msg + "\n```");
+                lineCount = 0;
+                msg = '';
+              }
+              if (lineCount > 0) {
+                await message.reply("```\n" + msg + "\n```");
+              }
+            } else {
+              await message.reply("내용 없음");  
+            }
+          } else {
+            await message.reply("no datas");
+          }
+        } else {
+          await message.reply("no info");
+        }
+      } else {
+        const info = accInfo[message.channel.name];
+        if (info) {
+          const datas = info.datas;
+          if (datas && datas.length > 0) {
+            // 월별 정리
+            var curkey = '';
+            var insum = 0;
+            var outsum = 0;
+            var reportMsg = '';
+            for (const data of datas) {
+              const ymtemp = data.date.split('-');
+              const key = `${ymtemp[0]}-${ymtemp[1]}`;
+              if (curkey != key) {
+                if (curkey.length > 0) {
+                  reportMsg += `${curkey}> 수입: ${insum}원, 지출: ${outsum}원, 계: ${insum + outsum}원\n`;
+                }
+                curkey = key;
+                insum = 0;
+                outsum = 0;
+              }
+              if (data.amount > 0) {
+                insum += parseInt(data.amount);
+              } else {
+                outsum += parseInt(data.amount);
+              }
+            }
+            if (curkey.length > 0) {
+              reportMsg += `${curkey}> 수입: ${insum}원, 지출: ${outsum}원, 계: ${insum + outsum}원`;
+            }
+            const reportLines = reportMsg.split('\n');
+            var lineCount = 0;
+            var msg = '';
+            for (const line of reportLines) {
+              msg += line + '\n';
+              lineCount += 1;
+              if (lineCount < 15) {
+                continue;
+              }
+              await message.reply("```\n" + msg + "\n```");
+              lineCount = 0;
+              msg = '';
+            }
+            if (lineCount > 0) {
+              await message.reply("```\n" + msg + "\n```");
+            }
+          } else {
+            await message.reply("no datas");
+          }
+        } else {
+          await message.reply("no info");
+        }
+      }
+    } else if (msgs.length == 2) {
       const amount = parseInt(msgs[0]);
       if (!Number.isNaN(amount)) {
         const memo = msgs[1].replace(',', '/');
@@ -282,58 +376,6 @@ module.exports = async (client, message) => {
         if (lineCount > 0) {
           await message.reply("```\n" + msg + "\n```");
         }
-      }
-    } else if (message.content == "report") {
-      const info = accInfo[message.channel.name];
-      if (info) {
-        const datas = info.datas;
-        if (datas && datas.length > 0) {
-          // 월별 정리
-          var curkey = '';
-          var insum = 0;
-          var outsum = 0;
-          var reportMsg = '';
-          for (const data of datas) {
-            const ymtemp = data.date.split('-');
-            const key = `${ymtemp[0]}-${ymtemp[1]}`;
-            if (curkey != key) {
-              if (curkey.length > 0) {
-                reportMsg += `${curkey}> 수입: ${insum}원, 지출: ${outsum}원, 계: ${insum + outsum}원\n`;
-              }
-              curkey = key;
-              insum = 0;
-              outsum = 0;
-            }
-            if (data.amount > 0) {
-              insum += parseInt(data.amount);
-            } else {
-              outsum += parseInt(data.amount);
-            }
-          }
-          if (curkey.length > 0) {
-            reportMsg += `${curkey}> 수입: ${insum}원, 지출: ${outsum}원, 계: ${insum + outsum}원`;
-          }
-          const reportLines = reportMsg.split('\n');
-          var lineCount = 0;
-          var msg = '';
-          for (const line of reportLines) {
-            msg += line + '\n';
-            lineCount += 1;
-            if (lineCount < 15) {
-              continue;
-            }
-            await message.reply("```\n" + msg + "\n```");
-            lineCount = 0;
-            msg = '';
-          }
-          if (lineCount > 0) {
-            await message.reply("```\n" + msg + "\n```");
-          }
-        } else {
-          await message.reply("no datas");
-        }
-      } else {
-        await message.reply("no info");
       }
     }
 
