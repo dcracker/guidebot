@@ -123,60 +123,57 @@ async function firstLoadAll() {
 
 async function autoReporter(channel) {
   var recentReportTime = 0;
-  await channel.send('Auto reporter running...');
-  while (true) {
-    const now = new Date();
-    if ((now.getTime() - recentReportTime) / 1000 >= 3600 * 24 * 7) {
-      recentReportTime = now;
-      const nowStrs = getDateString(now).split('-');
-      const nowKey = `${nowStrs[0]}-${nowStrs[1]}`;
-      const info = accInfo[channel.name];
-      if (info) {
-        const datas = info.datas;
-        if (datas && datas.length > 0) {
-          var reportMsg = '';
-          for (const data of datas) {
-            const ymtemp = data.date.split('-');
-            const key = `${ymtemp[0]}-${ymtemp[1]}`;
-            if (nowKey == key) {
-              reportMsg += `${data.date}> ${data.memo}: ${data.amount}\n`;
-            }
+  const now = new Date();
+  if ((now.getTime() - recentReportTime) / 1000 >= 3600 * 24 * 7) {
+    recentReportTime = now;
+    const nowStrs = getDateString(now).split('-');
+    const nowKey = `${nowStrs[0]}-${nowStrs[1]}`;
+    const info = accInfo[channel.name];
+    if (info) {
+      const datas = info.datas;
+      if (datas && datas.length > 0) {
+        var reportMsg = '';
+        for (const data of datas) {
+          const ymtemp = data.date.split('-');
+          const key = `${ymtemp[0]}-${ymtemp[1]}`;
+          if (nowKey == key) {
+            reportMsg += `${data.date}> ${data.memo}: ${data.amount}\n`;
           }
-          reportMsg += `잔액: ${info.balance}`;
-          if (reportMsg.length > 0) {
-            const reportLines = reportMsg.split('\n');
-            var lineCount = 0;
-            var msg = '';
-            for (var line of reportLines) {
-              if (line.length == 0) {
-                continue;
-              }
-              msg += line + '\n';
-              lineCount += 1;
-              if (lineCount < 15) {
-                continue;
-              }
-              await channel.send("```\n" + msg + "\n```");
-              lineCount = 0;
-              msg = '';
+        }
+        reportMsg += `잔액: ${info.balance}`;
+        if (reportMsg.length > 0) {
+          const reportLines = reportMsg.split('\n');
+          var lineCount = 0;
+          var msg = '';
+          for (var line of reportLines) {
+            if (line.length == 0) {
+              continue;
             }
-            if (lineCount > 0) {
-              await channel.send("```\n" + msg + "\n```");
+            msg += line + '\n';
+            lineCount += 1;
+            if (lineCount < 15) {
+              continue;
             }
-          } else {
-            await channel.send("내용 없음");  
+            await channel.send("```\n" + msg + "\n```");
+            lineCount = 0;
+            msg = '';
+          }
+          if (lineCount > 0) {
+            await channel.send("```\n" + msg + "\n```");
           }
         } else {
-          await channel.send("no datas");
+          await channel.send("내용 없음");  
         }
       } else {
-        await channel.send("no info");
+        await channel.send("no datas");
       }
     } else {
-      setTimeout(function() {
-        autoReporter(channel);
-      }, 600000);
+      await channel.send("no info");
     }
+  } else {
+    setTimeout(function() {
+      autoReporter(channel);
+    }, 600000);
   }
 }
 
@@ -294,6 +291,7 @@ module.exports = async (client, message) => {
   if (accInfo == null) {
     await firstLoadAll();
     autoReporter(message.channel);
+    await message.channel.send('Auto reporter running...');
   }
 
   // It's also good practice to ignore any and all messages that do not start
