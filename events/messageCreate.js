@@ -94,7 +94,8 @@ const emojiQuestion = "❓";
 const channelIdGeneral = "952529231475253251";
 
 const accountNameList = [
-  "식비", "한글채널", "항아리", "수입"
+  "식비", "한글채널", "항아리", "수입", "차량유지비", "관리비공과금", "인터넷", "강용돈", "생활잡비", 
+  "강폰", "정수기", "주담대", "씨티", "신한회사"
 ];
 
 // var accInfo = {
@@ -172,7 +173,9 @@ async function autoReporter(channel) {
         await channel.send("no info");
       }
     } else {
-      sleep(600);
+      setTimeout(function() {
+        autoReporter(channel);
+      }, 600000);
     }
   }
 }
