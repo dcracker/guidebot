@@ -295,7 +295,7 @@ module.exports = async (client, message) => {
           var reportMsg = '';
           for (const data of datas) {
             const ymtemp = data.date.split('-');
-            const key = `${ymtemp[0]-ymtemp[1]}`;
+            const key = `${ymtemp[0]}-${ymtemp[1]}`;
             if (curkey != key) {
               if (curkey.length > 0) {
                 reportMsg += `${curkey}> 수입: ${insum}원, 지출: ${outsum}원, 계: ${insum + outsum}원\n`;
