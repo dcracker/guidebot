@@ -127,8 +127,8 @@ async function autoReporter(channel) {
     const now = new Date();
     if ((now.getTime() - recentReportTime) / 1000 >= 3600 * 24 * 7) {
       recentReportTime = now;
-      const nowStr = getDateString(now);
-      const nowKey = `${nowStr[0]}-${nowStr[1]}`;
+      const nowStrs = getDateString(now).split('-');
+      const nowKey = `${nowStrs[0]}-${nowStrs[1]}`;
       const info = accInfo[channel.name];
       if (info) {
         const datas = info.datas;
