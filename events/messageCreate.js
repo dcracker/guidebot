@@ -241,20 +241,72 @@ module.exports = async (client, message) => {
   // our prefix (be it mention or from the settings).
   if (!prefix) {
     const msgs = message.content.split(' ');
-    if (msgs[0] == "report") {
-      if (msgs.length == 2) {
+    if (msgs[0].toLowerCase() == "report") {
+      if (msgs.length == 3) {
+        if (msgs[2].toLowerCase() == "all") {
+          const inkey = msgs[1];
+          const info = accInfo[message.channel.name];
+          if (info) {
+            const datas = info.datas;
+            if (datas && datas.length > 0) {
+              var reportMsg = '';
+              for (const data of datas) {
+                const ymtemp = data.date.split('-');
+                const key = `${ymtemp[0]}-${ymtemp[1]}`;
+                if (inkey == key) {
+                  reportMsg += `${data.date}> ${data.memo}: ${data.amount}\n`;
+                }
+              }
+              if (reportMsg.length > 0) {
+                const reportLines = reportMsg.split('\n');
+                var lineCount = 0;
+                var msg = '';
+                for (var line of reportLines) {
+                  msg += line + '\n';
+                  lineCount += 1;
+                  if (lineCount < 15) {
+                    continue;
+                  }
+                  await message.reply("```\n" + msg + "\n```");
+                  lineCount = 0;
+                  msg = '';
+                }
+                if (lineCount > 0) {
+                  await message.reply("```\n" + msg + "\n```");
+                }
+              } else {
+                await message.reply("내용 없음");  
+              }
+            } else {
+              await message.reply("no datas");
+            }
+          } else {
+            await message.reply("no info");
+          }
+        } else {
+          await message.reply("?, all ?");
+        }
+      } else if (msgs.length == 2) {
         const inkey = msgs[1];
         const info = accInfo[message.channel.name];
         if (info) {
           const datas = info.datas;
           if (datas && datas.length > 0) {
-            var reportMsg = '';
+            var totalData = {};
             for (const data of datas) {
               const ymtemp = data.date.split('-');
               const key = `${ymtemp[0]}-${ymtemp[1]}`;
               if (inkey == key) {
-                reportMsg += `${data.date}> ${data.memo}: ${data.amount}\n`;
+                if (totalData[data.memo]) {
+                  totalData[data.memo] += parseInt(data.amount);
+                } else {
+                  totalData[data.memo] = parseInt(data.amount);
+                }
               }
+            }
+            var reportMsg = '';
+            for (const entry of totalData.entries()) {
+              reportMsg += `${entry[0]}: ${entry[1]}원\n`;
             }
             if (reportMsg.length > 0) {
               const reportLines = reportMsg.split('\n');
@@ -345,7 +397,7 @@ module.exports = async (client, message) => {
           doTransaction(message, -amount, memo);
         }
       }
-    } else if (msgs.length == 3 && (msgs[0] == "p" || msgs[0] == "P")) {
+    } else if (msgs.length == 3 && msgs[0].toLowerCase() == "p") {
       const amount = parseInt(msgs[1]);
       if (!Number.isNaN(amount)) {
         const memo = msgs[2].replace(',', '/');
@@ -355,7 +407,7 @@ module.exports = async (client, message) => {
           doTransaction(message, amount, memo);
         }
       }
-    } else if (message.content == "backup") {
+    } else if (message.content.toLowerCase() == "backup") {
       const info = accInfo[message.channel.name];
       if (info) {
         const filePath = info.dataFilePath;
