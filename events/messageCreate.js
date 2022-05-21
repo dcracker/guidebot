@@ -262,6 +262,24 @@ async function doTransaction(message, amount, memo) {
   }
 }
 
+async function doTransactionPass(message, amount, memo, fromName, toName) {
+  const resFrom = appendTransaction(fromName, -amount, memo, message.author.id, toName, "pass");
+  if (resFrom.error != null) {
+    await message.react(emojiQuestion);
+    await message.reply(resFrom.error);
+    return;
+  }
+  const resTo = appendTransaction(toName, amount, memo, message.author.id, fromName, "pass");
+  if (resTo.error != null) {
+    await message.react(emojiQuestion);
+    await message.reply(resFrom.error);
+    await message.reply('차감은 됐으니 수동으로 추가해주세요');
+    return;
+  }
+  await message.react(emojiOKtoMinus);
+  await message.reply(`현재 잔액: ${resFrom.newBalance}\n${toName} 잔액: ${resTo.newBalance}`);
+}
+
 
 
 // The MESSAGE event runs anytime a message is received
@@ -462,6 +480,19 @@ module.exports = async (client, message) => {
         } else {
           await message.reply("no info");
         }
+      }
+    } else if (msgs[0].toLowerCase() == "pass") {
+      if (msgs.length == 4) {
+        const amount = parseInt(msgs[1]);
+        const toName = msgs[2];
+        const memo = msgs[3];
+        if (amount <= 0) {
+          await message.react(emojiQuestion);
+        } else {
+          doTransactionPass(message, amount, memo, message.channel.name, toName);
+        }
+      } else {
+        await message.reply("format: pass amount name memo");
       }
     } else if (msgs.length == 2) {
       const amount = parseInt(msgs[0]);
