@@ -36,6 +36,7 @@
     "mkdirp-sync": "^0.0.3",
     "os": "^0.1.2",
     "path": "^0.12.7",
+    "sleep": "^6.3.0",
     "string-align": "^0.2.0"
   },
   "devDependencies": {
