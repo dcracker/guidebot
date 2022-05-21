@@ -305,8 +305,9 @@ module.exports = async (client, message) => {
               }
             }
             var reportMsg = '';
-            for (const entry of totalData.entries()) {
-              reportMsg += `${entry[0]}: ${entry[1]}원\n`;
+            const allKeys = Array.from(totalData.keys());
+            for (const key of allKeys) {
+              reportMsg += `${key}: ${totalData[key]}원\n`;
             }
             if (reportMsg.length > 0) {
               const reportLines = reportMsg.split('\n');
