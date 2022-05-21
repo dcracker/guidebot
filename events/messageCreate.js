@@ -9,6 +9,7 @@ const csvparser = require("csv-parser");
 const csvwriter = require("csv-writer").createObjectCsvWriter;
 const align = require("string-align");
 const { execSync } = require("child_process");
+const sleep = require('sleep').sleep;
 
 const baseDataPath = "/home/pi/discord_bot/account_datas/";
 const csvHeaderFormat = [
@@ -116,6 +117,62 @@ async function firstLoadAll() {
       "balance": balance,
       "dataFilePath": filePath
     };
+  }
+}
+
+async function autoReporter(channel) {
+  var recentReportTime = 0;
+  await channel.send('Auto reporter running...');
+  while (true) {
+    const now = new Date();
+    if ((now.getTime() - recentReportTime) / 1000 >= 3600 * 24 * 7) {
+      recentReportTime = now;
+      const nowStr = getDateString(now);
+      const nowKey = `${nowStr[0]}-${nowStr[1]}`;
+      const info = accInfo[channel.name];
+      if (info) {
+        const datas = info.datas;
+        if (datas && datas.length > 0) {
+          var reportMsg = '';
+          for (const data of datas) {
+            const ymtemp = data.date.split('-');
+            const key = `${ymtemp[0]}-${ymtemp[1]}`;
+            if (nowKey == key) {
+              reportMsg += `${data.date}> ${data.memo}: ${data.amount}\n`;
+            }
+          }
+          if (reportMsg.length > 0) {
+            const reportLines = reportMsg.split('\n');
+            var lineCount = 0;
+            var msg = '';
+            for (var line of reportLines) {
+              if (line.length == 0) {
+                continue;
+              }
+              msg += line + '\n';
+              lineCount += 1;
+              if (lineCount < 15) {
+                continue;
+              }
+              await channel.send("```\n" + msg + "\n```");
+              lineCount = 0;
+              msg = '';
+            }
+            if (lineCount > 0) {
+              await channel.send("```\n" + msg + "\n```");
+            }
+          } else {
+            await channel.send("내용 없음");  
+          }
+        } else {
+          await channel.send("no datas");
+        }
+      } else {
+        await channel.send("no info");
+      }
+    } else {
+      sleep(600);
+    }
   }
 }
 
@@ -232,6 +289,7 @@ module.exports = async (client, message) => {
 
   if (accInfo == null) {
     await firstLoadAll();
+    autoReporter();
   }
 
   // It's also good practice to ignore any and all messages that do not start
