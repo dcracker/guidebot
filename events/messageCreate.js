@@ -289,7 +289,7 @@ module.exports = async (client, message) => {
 
   if (accInfo == null) {
     await firstLoadAll();
-    autoReporter();
+    autoReporter(message.channel);
   }
 
   // It's also good practice to ignore any and all messages that do not start
