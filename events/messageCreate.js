@@ -308,8 +308,8 @@ module.exports = async (client, message) => {
 
   if (accInfo == null) {
     await firstLoadAll();
-    await message.channel.send('Auto reporter running...');
-    autoReporter(message.channel);
+    // await message.channel.send('Auto reporter running...');
+    // autoReporter(message.channel);
   }
 
   // It's also good practice to ignore any and all messages that do not start
@@ -322,6 +322,7 @@ module.exports = async (client, message) => {
     if (msgs[0].toLowerCase() == "report") {
       if (msgs.length == 3) {
         if (msgs[2].toLowerCase() == "all") {
+          // 'report 2022-05 all'
           const inkey = msgs[1];
           const info = accInfo[message.channel.name];
           if (info) {
@@ -368,20 +369,27 @@ module.exports = async (client, message) => {
           await message.reply("?, all ?");
         }
       } else if (msgs.length == 2) {
+        // 'report 2022-05'
         const inkey = msgs[1];
         const info = accInfo[message.channel.name];
         if (info) {
           const datas = info.datas;
           if (datas && datas.length > 0) {
             var totalData = {};
+            var totalPlus = 0;
             for (const data of datas) {
               const ymtemp = data.date.split('-');
               const key = `${ymtemp[0]}-${ymtemp[1]}`;
-              if (inkey == key) {
-                if (totalData[data.memo]) {
-                  totalData[data.memo] += parseInt(data.amount);
-                } else {
-                  totalData[data.memo] = parseInt(data.amount);
+              const amount = parseInt(data.amount);
+              if (amount > 0) {
+                totalPlus += amount;
+              } else {
+                if (inkey == key) {
+                  if (totalData[data.memo]) {
+                    totalData[data.memo] += parseInt(data.amount);
+                  } else {
+                    totalData[data.memo] = parseInt(data.amount);
+                  }
                 }
               }
             }
@@ -395,6 +403,10 @@ module.exports = async (client, message) => {
             totalDataArray.sort(function(a, b) {
               return b.amount - a.amount;
             });
+            // totalDataArray.push({
+            //   memo: '총수입',
+            //   amount: totalPlus
+            // });
             var reportMsg = '';
             for (const sdata of totalDataArray) {
               reportMsg += `${sdata.memo}: ${sdata.amount}원\n`;
@@ -429,6 +441,7 @@ module.exports = async (client, message) => {
           await message.reply("no info");
         }
       } else {
+        // 'report'
         const info = accInfo[message.channel.name];
         if (info) {
           const datas = info.datas;
@@ -483,6 +496,7 @@ module.exports = async (client, message) => {
       }
     } else if (msgs[0].toLowerCase() == "pass") {
       if (msgs.length == 4) {
+        // 'pass 12000 식비 메모'
         const amount = parseInt(msgs[1]);
         const toName = msgs[2];
         const memo = msgs[3];
