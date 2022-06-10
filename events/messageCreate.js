@@ -377,18 +377,20 @@ module.exports = async (client, message) => {
           if (datas && datas.length > 0) {
             var totalData = {};
             var totalPlus = 0;
+            var totalMinus = 0;
             for (const data of datas) {
               const ymtemp = data.date.split('-');
               const key = `${ymtemp[0]}-${ymtemp[1]}`;
               const amount = parseInt(data.amount);
-              if (amount > 0) {
-                totalPlus += amount;
-              } else {
-                if (inkey == key) {
+              if (inkey == key) {
+                if (amount > 0) {
+                  totalPlus += amount;
+                } else {
+                  totalMinus += amount;
                   if (totalData[data.memo]) {
-                    totalData[data.memo] += parseInt(data.amount);
+                    totalData[data.memo] += amount;
                   } else {
-                    totalData[data.memo] = parseInt(data.amount);
+                    totalData[data.memo] = amount;
                   }
                 }
               }
@@ -402,6 +404,10 @@ module.exports = async (client, message) => {
             }
             totalDataArray.sort(function(a, b) {
               return b.amount - a.amount;
+            });
+            totalDataArray.push({
+              memo: '-총지출',
+              amount: totalMinus
             });
             // totalDataArray.push({
             //   memo: '총수입',
